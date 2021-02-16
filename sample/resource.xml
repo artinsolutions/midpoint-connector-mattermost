@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+
+ ~ Copyright (c) ARTIN solutions
+ ~
+ ~ Licensed under the Apache License, Version 2.0 (the "License");
+ ~ you may not use this file except in compliance with the License.
+ ~ You may obtain a copy of the License at
+ ~
+ ~     http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~ Unless required by applicable law or agreed to in writing, software
+ ~ distributed under the License is distributed on an "AS IS" BASIS,
+ ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ ~ See the License for the specific language governing permissions and
+ ~ limitations under the License.
+ 
+-->
+<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" 
+		oid="3e32fa97-d10e-409d-be57-5b1119ac507a">
+    <name>Mattermost</name>
+
+    <connectorRef relation="org:default" type="c:ConnectorType">
+		<filter>
+			<q:equal>
+				<q:path>c:connectorType</q:path>
+				<q:value>io.artin.idm.connector.mattermost.MattermostConnector</q:value>
+			</q:equal>
+		</filter>
+    </connectorRef>
+    <connectorConfiguration xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xsi:type="c:ConnectorConfigurationType">
+        <icfc:configurationProperties xmlns:gen408="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-freeipa/io.artin.idm.connector.freeipa.FreeIpaConnector" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="icfc:ConfigurationPropertiesType">
+            <gen408:trustAllCertificates>true</gen408:trustAllCertificates>
+            <gen408:password>
+            	<clearValue>$(mattermost.password)</clearValue>
+			</gen408:password>            	
+            <gen408:serviceAddress>$(mattermost.serviceAddress)</gen408:serviceAddress>
+            <gen408:authMethod>NONE</gen408:authMethod>
+            <gen408:username>$(mattermost.username)</gen408:username>
+        </icfc:configurationProperties>
+    </connectorConfiguration>
+    
+    <schemaHandling>
+        <objectType>
+            <kind>account</kind>
+            <intent>default</intent>
+            <default>true</default>
+            <objectClass>ri:user</objectClass>
+
+            <protected>
+                <filter>
+                    <q:equal>
+                        <q:path>declare namespace icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3";
+                                attributes/icfs:name</q:path>
+                        <q:value>admin</q:value>
+                    </q:equal>
+                </filter>
+            </protected>            
+            <protected>
+                <filter>
+                    <q:equal>
+                        <q:path>declare namespace icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3";
+                                attributes/icfs:name</q:path>
+                        <q:value>$(mattermost.username)</q:value>
+                    </q:equal>
+                </filter>
+            </protected>            
+        </objectType>
+  
+    </schemaHandling>
+    
+    <synchronization>
+ 		<objectSynchronization>
+	         <name>Account sync</name>
+	         <kind>account</kind>
+	         <intent>default</intent>
+	         <objectClass>ri:user</objectClass>
+	         <focusType>UserType</focusType>
+	         <enabled>true</enabled>
+	         <correlation>
+	            <q:equal>
+	               <q:path>c:name</q:path>
+	               <expression>
+	                  <path>$shadow/attributes/icfs:name</path>
+	               </expression>
+	            </q:equal>
+	         </correlation>
+	         <reaction>
+	            <situation>linked</situation>
+	            <synchronize>true</synchronize>
+	         </reaction>
+	         <reaction>
+	            <situation>deleted</situation>
+	            <!-- TODO
+	            <action>
+                    <handlerUri>http://midpoint.evolveum.com/xml/ns/public/model/action-3#inactivateShadow</handlerUri>
+                </action> -->
+	         </reaction>
+	         <reaction>
+	            <situation>unlinked</situation>
+	            <action>
+                    <handlerUri>http://midpoint.evolveum.com/xml/ns/public/model/action-3#link</handlerUri>
+                </action>
+	         </reaction>
+	         <reaction>
+	            <situation>unmatched</situation>
+	         </reaction>
+      	</objectSynchronization>
+    </synchronization>
+</resource>
