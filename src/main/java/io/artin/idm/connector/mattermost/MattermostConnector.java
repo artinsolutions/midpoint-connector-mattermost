@@ -57,6 +57,7 @@ import org.identityconnectors.framework.spi.operations.UpdateOp;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.evolveum.polygon.rest.AbstractRestConfiguration;
 import com.evolveum.polygon.rest.AbstractRestConnector;
 
 /**
@@ -119,35 +120,38 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         LOG.info("Initializing {0} connector instance {1}", this.getClass().getSimpleName(), this);
     	super.init(configuration);
         
-    	final List<String> passwordList = new ArrayList<String>(1);
-        GuardedString guardedPassword = getConfiguration().getPassword();
-        if (guardedPassword != null) {
-            guardedPassword.access(new GuardedString.Accessor() {
-                @Override
-                public void access(char[] chars) {
-                    passwordList.add(new String(chars));
-                }
-            });
+    	// alternative authorization - getting Token from username/password 
+    	if(getConfiguration().getAuthMethod().equals(AbstractRestConfiguration.AuthMethod.NONE.name())) {
+	    	final List<String> passwordList = new ArrayList<String>(1);
+	        GuardedString guardedPassword = getConfiguration().getPassword();
+	        if (guardedPassword != null) {
+	            guardedPassword.access(new GuardedString.Accessor() {
+	                @Override
+	                public void access(char[] chars) {
+	                    passwordList.add(new String(chars));
+	                }
+	            });
+	        }
+	        String password = null;
+	        if (!passwordList.isEmpty()) {
+	            password = passwordList.get(0);
+	        }  
+	        
+	        // log in
+	        HttpPost httpPost = new HttpPost(getConfiguration().getServiceAddress()+"/users/login");
+	     
+	        JSONObject jo = new JSONObject();
+	        jo.put("login_id", getConfiguration().getUsername());
+	        jo.put("password", password);
+	        
+	        try {
+				String response = callRequest(httpPost, jo.toString());
+				LOG.info("Init response is: {0}", response);        
+			} catch (ConnectorIOException e) {
+				LOG.error("cannot log in to mattermost: " + e, e);
+				throw new ConnectorIOException(e.getMessage(), e);
+			}
         }
-        String password = null;
-        if (!passwordList.isEmpty()) {
-            password = passwordList.get(0);
-        }  
-        
-        // log in
-        HttpPost httpPost = new HttpPost(getConfiguration().getServiceAddress()+"/users/login");
-     
-        JSONObject jo = new JSONObject();
-        jo.put("login_id", getConfiguration().getUsername());
-        jo.put("password", password);
-        
-        try {
-			String response = callRequest(httpPost, jo.toString());
-			LOG.info("Init response is: {0}", response);        
-		} catch (ConnectorIOException e) {
-			LOG.error("cannot log in to mattermost: " + e, e);
-			throw new ConnectorIOException(e.getMessage(), e);
-		}
     }
 		
     @Override
@@ -307,15 +311,37 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
                         handler.handle(connectorObject);
             		}
                 } else {
-                HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users");
-                
-    			JSONArray users = new JSONArray(callGetRequest(httpGet));
-        		for (int i = 0; i < users.length(); ++i) {
-        		    JSONObject user = users.getJSONObject(i);
-                    ConnectorObject connectorObject = convertUserToConnectorObject(user);
-                    handler.handle(connectorObject);
-        		}
-            	// TODO: paging if required later...
+	                Integer pageSize = 60; // default in mattermost, max 200
+	                Integer offset = 0; // first page in mattermost
+	                Boolean readAll = true;
+	                if (options != null && options.getPageSize() != null) {
+                		pageSize = options.getPageSize();
+                		offset = options.getPagedResultsOffset();
+                		readAll = false;
+                		LOG.ok("Paging options offset: {0}, pageSize: {1}", offset, pageSize);
+                	}
+	                HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users?per_page="+pageSize+"&page="+offset);
+	                
+	    			JSONArray users = new JSONArray(callGetRequest(httpGet));
+	        		for (int i = 0; i < users.length(); ++i) {
+	        		    JSONObject user = users.getJSONObject(i);
+	                    ConnectorObject connectorObject = convertUserToConnectorObject(user);
+	                    handler.handle(connectorObject);
+	        		}
+	        		if (readAll) {
+	        			offset++;
+                		LOG.ok("Reading all users, current offset: {0}, pageSize: {1}", offset, pageSize);
+	        			while (users.length()==pageSize) {
+	    	                httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users?per_page="+pageSize+"&page="+offset);
+	    	                
+	    	    			users = new JSONArray(callGetRequest(httpGet));
+	    	        		for (int i = 0; i < users.length(); ++i) {
+	    	        		    JSONObject user = users.getJSONObject(i);
+	    	                    ConnectorObject connectorObject = convertUserToConnectorObject(user);
+	    	                    handler.handle(connectorObject);
+	    	        		}
+	        			}
+	        		}
                 }
             } else {
                 // not found
@@ -429,7 +455,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         CloseableHttpResponse response = execute(request);
         
         // read new token after init() auth
-        if (token == null) { 
+        if(getConfiguration().getAuthMethod().equals(AbstractRestConfiguration.AuthMethod.NONE.name()) && token == null) { 
             // token auth https://api.mattermost.com/#tag/authentication
         	token = response.getFirstHeader("Token").getValue();
         	LOG.ok("New token is saved: {0}", token);

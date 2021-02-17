@@ -12,7 +12,7 @@ Connector for [Mattermost](https://mattermost.com/) using [REST API](https://api
 * Provisioning: YES
 * Live Synchronization: No
 * Password: YES
-* Activation: YES?
+* Activation: YES ?
 * Script execution: No 
 
 Mattermost Connector contains support for USER entity.  
@@ -29,7 +29,9 @@ After successful the build, you can find `connector-mattermost-1.0.0.0.jar` in `
 
 ## Configuring resource
 
-* create user with required permissions or use admin
+* create Bot account: https://docs.mattermost.com/developer/bot-accounts.html
+* set authMethod=TOKEN, tokenName=Authorization, tokenValue=Bearer + token  (prefix "Bearer " required)
+* alternatively use Personal account with authMethod=NONE and username, password attributes or Personal Access Tokens (https://docs.mattermost.com/developer/personal-access-tokens.html)
 * inspire by [sample](https://github.com/artinsolutions/midpoint-connector-mattermost/tree/master/sample) to configure your own resource
 
 ## License
@@ -38,5 +40,5 @@ Licensed under the [Apache License 2.0](/LICENSE).
 
 ## Status
 
-Mattermost Connector is intended for production use. Tested with MidPoint version 4.1. The connector was introduced as a contribution to midPoint project by [ARTIN](https://www.artinsolutions.com) and is not officially supported by Evolveum.
+Mattermost Connector is intended for production use. Tested with MidPoint version 4.1, Mattermost version: 5.32.0. The connector was introduced as a contribution to midPoint project by [ARTIN](https://www.artinsolutions.com) and is not officially supported by Evolveum.
 If you need support, please contact idm@artinsolutions.com.

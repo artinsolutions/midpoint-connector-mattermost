@@ -60,15 +60,18 @@ public class TestClient {
 
         conf = new MattermostConfiguration();
         conf.setUsername(properties.getProperty("username"));
-        conf.setPassword(new GuardedString(properties.getProperty("password").toCharArray()));
+        if (properties.containsKey("password"))
+        	conf.setPassword(new GuardedString(properties.getProperty("password").toCharArray()));
         conf.setServiceAddress(properties.getProperty("serviceAddress"));
         conf.setAuthMethod(properties.getProperty("authMethod"));
         conf.setTrustAllCertificates(Boolean.parseBoolean(properties.getProperty("trustAllCertificates")));
+        conf.setTokenName(properties.getProperty("tokenName"));
+        conf.setTokenValue(new GuardedString(properties.getProperty("tokenValue").toCharArray()));
 
 		conn = new MattermostConnector(); 
 		conn.init(conf);
     }  
-    
+/*    
     @Test
     public void testConn() {
     	LOG.info("Starting testConn...");
@@ -116,7 +119,7 @@ public class TestClient {
         conn.executeQuery(userObjectClass, searchByUid, rh, null);
         LOG.ok("end finding");
     }    
-    
+*/    
     @Test
     public void findAll() {
         ResultsHandler rh = new ResultsHandler() {
