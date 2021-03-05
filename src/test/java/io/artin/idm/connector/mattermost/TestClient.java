@@ -15,25 +15,15 @@
  */
 package io.artin.idm.connector.mattermost;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.objects.Attribute;
-import org.identityconnectors.framework.common.objects.AttributeBuilder;
-import org.identityconnectors.framework.common.objects.ConnectorObject;
-import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.ObjectClass;
-import org.identityconnectors.framework.common.objects.OperationalAttributeInfos;
-import org.identityconnectors.framework.common.objects.ResultsHandler;
-import org.identityconnectors.framework.common.objects.Schema;
-import org.identityconnectors.framework.common.objects.Uid;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * @author gpalos
  */
@@ -50,6 +40,7 @@ public class TestClient {
     public static void setUp() throws Exception {
     	
         String fileName = "test.properties";
+//        System.setProperty("org.apache.http", "DEBUG");
 
         final Properties properties = new Properties();
         InputStream inputStream = TestClient.class.getClassLoader().getResourceAsStream(fileName);
@@ -67,12 +58,13 @@ public class TestClient {
         conf.setTrustAllCertificates(Boolean.parseBoolean(properties.getProperty("trustAllCertificates")));
         conf.setTokenName(properties.getProperty("tokenName"));
         conf.setTokenValue(new GuardedString(properties.getProperty("tokenValue").toCharArray()));
+        conf.setDefaultTeamId(properties.getProperty("teamID"));
 
 		conn = new MattermostConnector(); 
 		conn.init(conf);
     }  
-/*    
-    @Test
+
+/*    @Test
     public void testConn() {
     	LOG.info("Starting testConn...");
         conn.test();
@@ -96,7 +88,7 @@ public class TestClient {
 
         // searchByUId
         MattermostFilter searchByUid = new MattermostFilter();
-        searchByUid.byUid = "pmk3mhwe5fdmzq7ngy1j4pkjko"; //"admin";
+        searchByUid.byUid = "pmk3mhwe5fdmzq7ngy1j4pkjko";
         LOG.ok("start finding");
         conn.executeQuery(userObjectClass, searchByUid, rh, null);
         LOG.ok("end finding");
@@ -119,8 +111,8 @@ public class TestClient {
         conn.executeQuery(userObjectClass, searchByUid, rh, null);
         LOG.ok("end finding");
     }    
-*/    
-    @Test
+
+    //@Test
     public void findAll() {
         ResultsHandler rh = new ResultsHandler() {
             @Override
@@ -133,6 +125,76 @@ public class TestClient {
         // all
         MattermostFilter filter = new MattermostFilter();
         conn.executeQuery(userObjectClass, filter, rh, null);
-    }    
+    }
 
+//    @Test
+    public void create() {
+        Set<Attribute> testAttributes = new HashSet<Attribute>();
+
+        String testName = "TestUser_2";
+        testAttributes.add(AttributeBuilder.build(Name.NAME, testName));
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_USERNAME, testName));
+
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_EMAIL, "UserName@test.email"));
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_FIRST_NAME, "string_first_Name"));
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_LAST_NAME, "string_last_name"));
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_NICKNAME, "string_nick_name"));
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_LOCALE, "string_locale"));
+
+        GuardedString gs = new GuardedString("Pass123456789!".toCharArray());
+        testAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
+
+        Uid response = conn.create(userObjectClass, testAttributes, null);
+    }
+
+//    @Test
+    public void update() throws IOException {
+        Set<Attribute> updateAttributes = new HashSet<Attribute>();
+
+        String testName = "userName";
+        Uid testUid = new Uid("some_value");
+        updateAttributes.add(AttributeBuilder.build(Name.NAME, testName));
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_ID, testUid.getUidValue()));
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_USERNAME, testName));
+
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_EMAIL, "UserName@test.email"));
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_CREATE_AT, "0"));
+
+        GuardedString gs = new GuardedString("Pass123456789!".toCharArray());
+        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
+        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.ENABLE.getName(), true));
+
+        File f = new File("C:\\Users\\...\\test.png");
+        byte[] byteTestPhoto = Files.readAllBytes(f.toPath());
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_IMAGE, byteTestPhoto));
+
+        Uid response = conn.update(userObjectClass, testUid, updateAttributes, null);
+
+        LOG.ok("Test update response = " + response.getUidValue());
+    }
+
+//    @Test
+    public void delete() {
+        String stringUidToDelete = "some_value";
+        Uid uidToDelete = new Uid(stringUidToDelete);
+        conn.delete(userObjectClass, uidToDelete, null);
+    }
+
+    @Test
+    public void handleProfileImage() throws IOException {
+        Uid uid = new Uid("some_value");
+
+        File f = new File("C:\\Users\\...\\test.png");
+        byte[] byteTestPhoto = Files.readAllBytes(f.toPath());
+
+        Set<Attribute> testAttributes = new HashSet<Attribute>();
+        testAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_IMAGE, byteTestPhoto));
+        conn.handleProfileImage(uid, testAttributes);
+    }
+
+   // @Test
+    public void getUserProfilePicture() throws IOException {
+        Uid uid = new Uid("some_value");
+//        conn.getUserProfilePicture(uid);
+    }*/
 }

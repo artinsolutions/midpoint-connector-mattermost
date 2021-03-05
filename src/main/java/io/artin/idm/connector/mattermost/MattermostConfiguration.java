@@ -16,11 +16,37 @@
 package io.artin.idm.connector.mattermost;
 
 import com.evolveum.polygon.rest.AbstractRestConfiguration;
+import org.identityconnectors.framework.spi.ConfigurationProperty;
 
 /**
  * @author gpalos
  *
  */
 public class MattermostConfiguration extends AbstractRestConfiguration {
+    private String defaultTeamId = null;
+    private String[] defaultChannelIds;
 
+    @ConfigurationProperty(
+            displayMessageKey = "mattermost.defaultTeamId",
+            helpMessageKey = "mattermost.defaultTeamId.help"
+    )
+    public String getDefaultTeamId() {
+        return defaultTeamId;
+    }
+
+    public void setDefaultTeamId(String defaultTeamId) {
+        this.defaultTeamId = defaultTeamId;
+    }
+
+    @ConfigurationProperty(
+            displayMessageKey = "mattermost.defaultChannelIds",
+            helpMessageKey = "mattermost.defaultChannelIds.help"
+    )
+    public String[] getDefaultChannelIds() {
+        return defaultChannelIds;
+    }
+
+    public void setDefaultChannelIds(String[] defaultChannelIds) {
+        this.defaultChannelIds = defaultChannelIds;
+    }
 }

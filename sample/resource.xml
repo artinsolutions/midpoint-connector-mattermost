@@ -17,7 +17,7 @@
  
 -->
 <resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" 
-		oid="3e32fa97-d10e-409d-be57-5b1119ac507a">
+		oid="5b0a76c1-b4a7-4958-8b92-2c3bd91293eb">
     <name>Mattermost</name>
 
     <connectorRef relation="org:default" type="c:ConnectorType">
@@ -29,17 +29,22 @@
 		</filter>
     </connectorRef>
     <connectorConfiguration xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xsi:type="c:ConnectorConfigurationType">
-        <icfc:configurationProperties xmlns:gen408="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-freeipa/io.artin.idm.connector.freeipa.FreeIpaConnector" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="icfc:ConfigurationPropertiesType">
+        <icfc:configurationProperties xmlns:gen408="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-mattermost/io.artin.idm.connector.mattermost.MattermostConnector" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="icfc:ConfigurationPropertiesType">
             <gen408:trustAllCertificates>true</gen408:trustAllCertificates>
             <gen408:password>
-            	<clearValue>$(mattermost.password)</clearValue>
-			</gen408:password>            	
+                <clearValue>$(mattermost.password)</clearValue>
+            </gen408:password>
             <gen408:serviceAddress>$(mattermost.serviceAddress)</gen408:serviceAddress>
-            <gen408:authMethod>NONE</gen408:authMethod>
+            <gen408:authMethod>$(mattermost.authMethod)</gen408:authMethod>
             <gen408:username>$(mattermost.username)</gen408:username>
+            <gen408:tokenValue>$(mattermost.tokenValue)</gen408:tokenValue>
+            <gen408:tokenName>$(mattermost.tokenName)</gen408:tokenName>
+            <gen408:defaultTeamId>$(mattermost.defaultTeamId)</gen408:defaultTeamId>
+            <gen408:defaultChannelIds>$(mattermost.ARTINMainChannel)</gen408:defaultChannelIds>
+            <gen408:defaultChannelIds>$(mattermost.BratislavaChannel)</gen408:defaultChannelIds>
         </icfc:configurationProperties>
     </connectorConfiguration>
-    
+
     <schemaHandling>
         <objectType>
             <kind>account</kind>
@@ -47,26 +52,82 @@
             <default>true</default>
             <objectClass>ri:user</objectClass>
 
+            <attribute>
+                <ref>icfs:name</ref>
+                <outbound>
+                    <source>
+                        <path>c:name</path>
+                    </source>
+                </outbound>
+            </attribute>
+            <attribute>
+                <ref>ri:email</ref>
+                <outbound>
+                    <source>
+                        <path>emailAddress</path>
+                    </source>
+                </outbound>
+            </attribute>
+
+            <attribute>
+                <ref>ri:first_name</ref>
+                <outbound>
+                    <source>
+                        <path>givenName</path>
+                    </source>
+                </outbound>
+            </attribute>
+            <attribute>
+                <ref>ri:last_name</ref>
+                <outbound>
+                    <source>
+                        <path>familyName</path>
+                    </source>
+                </outbound>
+            </attribute>
+            <attribute>
+                <ref>ri:image</ref>
+                <outbound>
+                    <strength>normal</strength>
+                    <source>
+                        <path>jpegPhoto</path>
+                    </source>
+                </outbound>
+            </attribute>
+
+            <activation>
+                <administrativeStatus>
+                    <outbound>
+                        <strength>normal</strength>
+                    </outbound>
+                </administrativeStatus>
+            </activation>
+
+            <credentials>
+                <password xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xsi:type="c:ResourcePasswordDefinitionType">
+                    <outbound/>
+                </password>
+            </credentials>
+
             <protected>
                 <filter>
                     <q:equal>
                         <q:path>declare namespace icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3";
-                                attributes/icfs:name</q:path>
+                            attributes/icfs:name</q:path>
                         <q:value>admin</q:value>
                     </q:equal>
                 </filter>
-            </protected>            
+            </protected>
             <protected>
                 <filter>
                     <q:equal>
                         <q:path>declare namespace icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3";
-                                attributes/icfs:name</q:path>
+                            attributes/icfs:name</q:path>
                         <q:value>$(mattermost.username)</q:value>
                     </q:equal>
                 </filter>
-            </protected>            
+            </protected>
         </objectType>
-  
     </schemaHandling>
     
     <synchronization>

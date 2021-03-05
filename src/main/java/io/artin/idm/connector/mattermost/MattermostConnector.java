@@ -14,51 +14,33 @@
  * limitations under the License.
  */
 package io.artin.idm.connector.mattermost;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
-import org.identityconnectors.common.logging.Log;
-import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
-import org.identityconnectors.framework.common.exceptions.OperationTimeoutException;
-import org.identityconnectors.framework.common.exceptions.PermissionDeniedException;
-import org.identityconnectors.framework.common.exceptions.PreconditionFailedException;
-import org.identityconnectors.framework.common.exceptions.UnknownUidException;
-import org.identityconnectors.framework.common.objects.Attribute;
-import org.identityconnectors.framework.common.objects.AttributeInfoBuilder;
-import org.identityconnectors.framework.common.objects.ConnectorObject;
-import org.identityconnectors.framework.common.objects.ConnectorObjectBuilder;
-import org.identityconnectors.framework.common.objects.Name;
-import org.identityconnectors.framework.common.objects.ObjectClass;
-import org.identityconnectors.framework.common.objects.ObjectClassInfoBuilder;
-import org.identityconnectors.framework.common.objects.OperationOptions;
-import org.identityconnectors.framework.common.objects.ResultsHandler;
-import org.identityconnectors.framework.common.objects.Schema;
-import org.identityconnectors.framework.common.objects.SchemaBuilder;
-import org.identityconnectors.framework.common.objects.Uid;
-import org.identityconnectors.framework.common.objects.filter.FilterTranslator;
-import org.identityconnectors.framework.spi.Configuration;
-import org.identityconnectors.framework.spi.ConnectorClass;
-import org.identityconnectors.framework.spi.operations.CreateOp;
-import org.identityconnectors.framework.spi.operations.DeleteOp;
-import org.identityconnectors.framework.spi.operations.SchemaOp;
-import org.identityconnectors.framework.spi.operations.SearchOp;
-import org.identityconnectors.framework.spi.operations.TestOp;
-import org.identityconnectors.framework.spi.operations.UpdateOp;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.evolveum.polygon.rest.AbstractRestConfiguration;
 import com.evolveum.polygon.rest.AbstractRestConnector;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.*;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.util.EntityUtils;
+import org.identityconnectors.common.StringUtil;
+import org.identityconnectors.common.logging.Log;
+import org.identityconnectors.common.security.GuardedString;
+import org.identityconnectors.framework.common.exceptions.*;
+import org.identityconnectors.framework.common.objects.*;
+import org.identityconnectors.framework.common.objects.filter.FilterTranslator;
+import org.identityconnectors.framework.spi.Configuration;
+import org.identityconnectors.framework.spi.ConnectorClass;
+import org.identityconnectors.framework.spi.operations.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author gpalos
@@ -112,6 +94,15 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 
 	public static final String ATTR_IS_BOT = "is_bot";
 	public static final String ATTR_BOT_DESCRIPTION = "bot_description";
+
+	public static final String ATTR_IMAGE = "image";
+
+	public static final String ATTR_USER_ID = "user_id";
+	public static final String ATTR_TEAM_ID= "team_id";
+
+	public static final String ATTR_ERR_ID = "id";
+	public static final String ATTR_ERR_MESSAGE = "message";
+	public static final String ATTR_ACTIVE = "active";
 	
 	private String token = null;
 
@@ -122,7 +113,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         
     	// alternative authorization - getting Token from username/password 
     	if(getConfiguration().getAuthMethod().equals(AbstractRestConfiguration.AuthMethod.NONE.name())) {
-	    	final List<String> passwordList = new ArrayList<String>(1);
+	    	final List<String> passwordList = new ArrayList<>(1);
 	        GuardedString guardedPassword = getConfiguration().getPassword();
 	        if (guardedPassword != null) {
 	            guardedPassword.access(new GuardedString.Accessor() {
@@ -159,18 +150,12 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         super.dispose();
     }    
 
-//    @Override
-//    public void checkAlive() {
-//        test();
-//        // TODO quicker test?
-//    }
-    
 	@Override
 	public void test() {
         HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/system/ping");
         
         try {
-        	String response = callGetRequest(httpGet);
+        	String response = callRequest(httpGet);
 			LOG.info("Ping response is {0}", response);
 		} catch (ConnectorIOException e) {
 			LOG.error("cannot ping to mattermost: " + e, e);
@@ -191,12 +176,12 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	private void buildUserClass(SchemaBuilder schemaBuilder) {
 		ObjectClassInfoBuilder objClassBuilder = new ObjectClassInfoBuilder();
 		objClassBuilder.setType(OBJECT_CLASS_USER);
- 
-		/* UID=id, NAME=username
-		AttributeInfoBuilder attrIdBuilder = new AttributeInfoBuilder(ATTR_ID);
-        objClassBuilder.addAttributeInfo(attrIdBuilder.build());
-		AttributeInfoBuilder attrUsernameBuilder = new AttributeInfoBuilder(ATTR_USERNAME);
-        objClassBuilder.addAttributeInfo(attrUsernameBuilder.build()); */
+
+//		UID=id, NAME=username
+//		AttributeInfoBuilder attrIdBuilder = new AttributeInfoBuilder(ATTR_ID);
+//        objClassBuilder.addAttributeInfo(attrIdBuilder.build());
+//		AttributeInfoBuilder attrUsernameBuilder = new AttributeInfoBuilder(ATTR_USERNAME);
+//        objClassBuilder.addAttributeInfo(attrUsernameBuilder.build());
         
 		AttributeInfoBuilder attrFirstNameBuilder = new AttributeInfoBuilder(ATTR_FIRST_NAME);
         objClassBuilder.addAttributeInfo(attrFirstNameBuilder.build());
@@ -232,12 +217,15 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         objClassBuilder.addAttributeInfo(attrTermOfServiceCreateAtBuilder.build());
 		AttributeInfoBuilder attrCreateAtBuilder = new AttributeInfoBuilder(ATTR_CREATE_AT);
 		attrCreateAtBuilder.setType(Long.class);
+		attrCreateAtBuilder.setUpdateable(false);
         objClassBuilder.addAttributeInfo(attrCreateAtBuilder.build());
 		AttributeInfoBuilder attrUpdateAtBuilder = new AttributeInfoBuilder(ATTR_UPDATE_AT);
 		attrUpdateAtBuilder.setType(Long.class);
+		attrUpdateAtBuilder.setUpdateable(false);
         objClassBuilder.addAttributeInfo(attrUpdateAtBuilder.build());
 		AttributeInfoBuilder attrDeleteAtBuilder = new AttributeInfoBuilder(ATTR_DELETE_AT);
 		attrDeleteAtBuilder.setType(Long.class);
+		attrDeleteAtBuilder.setUpdateable(false);
         objClassBuilder.addAttributeInfo(attrDeleteAtBuilder.build());
 		AttributeInfoBuilder attrLastPasswordUpdateBuilder = new AttributeInfoBuilder(ATTR_LAST_PASSWORD_UPDATE);
 		attrLastPasswordUpdateBuilder.setType(Long.class);
@@ -279,7 +267,13 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 		AttributeInfoBuilder attrBotDescriptionBuilder = new AttributeInfoBuilder(ATTR_BOT_DESCRIPTION);
         objClassBuilder.addAttributeInfo(attrBotDescriptionBuilder.build());
 
-        schemaBuilder.defineObjectClass(objClassBuilder.build());
+        AttributeInfoBuilder attrImage = new AttributeInfoBuilder(ATTR_IMAGE);
+        attrImage.setType(byte[].class);
+        objClassBuilder.addAttributeInfo(attrImage.build());
+
+		objClassBuilder.addAttributeInfo(OperationalAttributeInfos.ENABLE);
+
+		schemaBuilder.defineObjectClass(objClassBuilder.build());
 	}
 
 	@Override
@@ -297,7 +291,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
             if (objectClass.is(OBJECT_CLASS_USER)) {
                 if (query != null && query.byUid != null) {
                     HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users/"+query.byUid);
-                    JSONObject user = new JSONObject(callGetRequest(httpGet));
+                    JSONObject user = new JSONObject(callRequest(httpGet));
                     ConnectorObject connectorObject = convertUserToConnectorObject(user);
                     handler.handle(connectorObject);
                 } else  if (query != null && query.byName != null) {
@@ -313,7 +307,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
                 } else {
 	                Integer pageSize = 60; // default in mattermost, max 200
 	                Integer offset = 0; // first page in mattermost
-	                Boolean readAll = true;
+	                boolean readAll = true;
 	                if (options != null && options.getPageSize() != null) {
                 		pageSize = options.getPageSize();
                 		offset = options.getPagedResultsOffset();
@@ -322,7 +316,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
                 	}
 	                HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users?per_page="+pageSize+"&page="+offset);
 	                
-	    			JSONArray users = new JSONArray(callGetRequest(httpGet));
+	    			JSONArray users = new JSONArray(callRequest(httpGet));
 	        		for (int i = 0; i < users.length(); ++i) {
 	        		    JSONObject user = users.getJSONObject(i);
 	                    ConnectorObject connectorObject = convertUserToConnectorObject(user);
@@ -334,7 +328,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	        			while (users.length()==pageSize) {
 	    	                httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users?per_page="+pageSize+"&page="+offset);
 	    	                
-	    	    			users = new JSONArray(callGetRequest(httpGet));
+	    	    			users = new JSONArray(callRequest(httpGet));
 	    	        		for (int i = 0; i < users.length(); ++i) {
 	    	        		    JSONObject user = users.getJSONObject(i);
 	    	                    ConnectorObject connectorObject = convertUserToConnectorObject(user);
@@ -353,7 +347,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	}
 
 	private ConnectorObject convertUserToConnectorObject(JSONObject user) throws IOException {
-		LOG.ok("JSON User as input: \n{0}", user);
+		LOG.ok("JSON MM User as input: \n{0}", user);
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
         ObjectClass objectClass = new ObjectClass(OBJECT_CLASS_USER);
         builder.setObjectClass(objectClass);        
@@ -378,7 +372,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
             builder.addAttribute(ATTR_ROLES, (Object[]) user.getString(ATTR_ROLES).split(ATTR_ROLES_DELIMITER));
         if (user.has(ATTR_LOCALE))
             builder.addAttribute(ATTR_LOCALE, user.getString(ATTR_LOCALE));
-//        builder.addAttribute(ATTR_PROPS, user.getString(ATTR_PROPS)); //FIXME if we know what is here....
+//        builder.addAttribute(ATTR_PROPS, user.getString(ATTR_PROPS)); //TODO if we know what is here....
         if (user.has(ATTR_FAILED_ATTEMPTS))
             builder.addAttribute(ATTR_FAILED_ATTEMPTS, user.getLong(ATTR_FAILED_ATTEMPTS));
         if (user.has(ATTR_MFA_ACTIVE))
@@ -430,46 +424,55 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	        if (notifyProps.has(ATTR_NOTIFY_PROPS__FIRST_NAME))
 	            builder.addAttribute(ATTR_NOTIFY_PROPS+DELIMITER+ATTR_NOTIFY_PROPS__FIRST_NAME, notifyProps.getBoolean(ATTR_NOTIFY_PROPS__FIRST_NAME));
         }
-        // TODO: user image load if needed
-        // https://mattermost.lab.artin.io/api/v4/users/pmk3mhwe5fdmzq7ngy1j4pkjko/image
-     
-//        boolean enabled = true; //FIXME: are visible/browseable disabled users?
-//        addAttr(builder, OperationalAttributes.ENABLE_NAME, enabled);
+
+		if (user.has(ATTR_DELETE_AT)) {
+			boolean enable = false;
+			if (user.getInt(ATTR_DELETE_AT) == 0) {
+				enable = true;
+			}
+			builder.addAttribute(OperationalAttributes.ENABLE_NAME, enable);
+		}
+
+		byte[] image = getUserProfilePicture(new Uid(id));
+		builder.addAttribute(ATTR_IMAGE, image);
 
         ConnectorObject connectorObject = builder.build();
         LOG.ok("convertUserToConnectorObject, user: {0}, \n\tconnectorObject: {1}",
         		id, connectorObject);
         return connectorObject;
 	}
+
 	
     protected String callRequest(HttpEntityEnclosingRequestBase request, String body) {
-    	request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
-        request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-        if (token != null)
-        	request.setHeader("Authorization", "Bearer "+token);
+		request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+		request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
-        StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
-        request.setEntity(entity);
-        
-        // LOG.ok("request: \n{0}", request);// FIXME: never log request, can containts passwords
-        CloseableHttpResponse response = execute(request);
-        
-        // read new token after init() auth
-        if(getConfiguration().getAuthMethod().equals(AbstractRestConfiguration.AuthMethod.NONE.name()) && token == null) { 
-            // token auth https://api.mattermost.com/#tag/authentication
-        	token = response.getFirstHeader("Token").getValue();
-        	LOG.ok("New token is saved: {0}", token);
-        }
-        LOG.ok("response: \n{0}", response);
+		request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+		return callRequest(request);
+    }
 
-        String result = processMattermostResponseErrors(response);
-        LOG.ok("response body: \n{0}", result);
-        closeResponse(response);
-        
-        return result;
-    }		
+	protected String callRequest(HttpEntityEnclosingRequestBase request) {
+		if (token != null)
+			request.setHeader("Authorization", "Bearer "+token);
+
+		CloseableHttpResponse response = execute(request);
+
+		// read new token after init() auth
+		if(getConfiguration().getAuthMethod().equals(AbstractRestConfiguration.AuthMethod.NONE.name()) && token == null) {
+			// token auth https://api.mattermost.com/#tag/authentication
+			token = response.getFirstHeader("Token").getValue();
+			LOG.ok("New token is saved: {0}", token);
+		}
+		LOG.ok("response: \n{0}", response);
+
+		String result = processMattermostResponseErrors(response);
+		LOG.ok("response body: \n{0}", result);
+		closeResponse(response);
+
+		return result;
+	}
 	
-    protected String callGetRequest(HttpGet request) {
+    protected String callRequest(HttpRequestBase request) {
     	request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
         request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
@@ -484,11 +487,11 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         closeResponse(response);
         
         return result;
-    }		
+    }
 
     private String processMattermostResponseErrors(CloseableHttpResponse response) {
     	// in body is also error result message
-    	String result = null;
+    	String result;
 		try {
 			result = EntityUtils.toString(response.getEntity());
 		} catch (IOException e) {
@@ -497,12 +500,34 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
         LOG.ok("Result body: {0}", result);
         
     	// super.processResponseErrors(response);
+		LOG.ok("To String getStatusLine = {0}", response.getStatusLine().toString());
+
         int statusCode = response.getStatusLine().getStatusCode();
-        
+		LOG.ok("Result body: Status code: {0}", statusCode);
+
         if (statusCode < 200 || statusCode > 299) {
 	        String message = "HTTP error " + statusCode + " " + response.getStatusLine().getReasonPhrase() + " : " + result;
 	        LOG.error("{0}", message);
 	        if (statusCode == 400 || statusCode == 405 || statusCode == 406) {
+				JSONObject resultJO = new JSONObject(result);
+	        	String resultErrId = resultJO.getString(ATTR_ERR_ID);
+				if (resultErrId.equals("app.user.save.email_exists.app_error") ||
+						resultErrId.equals("app.user.save.username_exists.app_error") ||
+						resultErrId.equals("app.user.save.existing.app_error")) {
+					closeResponse(response);
+					throw new AlreadyExistsException(message + ":" + resultJO.getString(ATTR_ERR_MESSAGE));
+				}
+
+				if (resultErrId.equals("app.user.update.find.app_error")) {
+					closeResponse(response);
+					throw new UnknownUidException(message + ":" + resultJO.getString(ATTR_ERR_MESSAGE));
+				}
+
+				if (resultErrId.equals("model.user.is_valid.pwd_lowercase_uppercase_number_symbol.app_error") ||
+						resultErrId.equals("api.context.invalid_body_param.app_error")) {
+					throw new InvalidAttributeValueException(resultJO.getString(message + ":" + ATTR_ERR_MESSAGE));
+				}
+
 	            closeResponse(response);
 	            throw new ConnectorIOException(message);
 	        }
@@ -525,32 +550,221 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	        if (statusCode == 418) {
 	            closeResponse(response);
 	            throw new UnsupportedOperationException("Sorry, no cofee: " + message);
-	        }        
-        }
-        
-        
-        // TODO: handle AlreadyExistsException / UnknownUidException
+	        }
+			if (statusCode == 500) {
+				closeResponse(response);
+				throw new InvalidAttributeValueException("Sorry, no cofee: " + message);
+			}
+		}
  
     	return result;
     }
 
+    private Uid parseUidFromString(String response) {
+		JSONObject joParser = new JSONObject(response);
+
+		Uid responseUid = new Uid(joParser.getString(ATTR_ID));
+
+		LOG.ok("Parsed Uid from response String = {0}", responseUid.getUidValue());
+		return responseUid;
+	}
+
 	@Override
 	public void delete(ObjectClass objectClass, Uid uid, OperationOptions options) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException();
+//		https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}/delete
+		if (uid == null) {
+			throw new UnknownUidException("Uid is empty");
+		}
+
+		HttpDelete request = new HttpDelete(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue());
+
+		LOG.ok("Deleting user with UID = {0}", uid.getUidValue());
+		callRequest(request);
+		LOG.ok("User with UID = {0} - deleted", uid.getUidValue());
 	}
 
 	@Override
 	public Uid update(ObjectClass objectClass, Uid uid, Set<Attribute> replaceAttributes, OperationOptions options) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException();
+//		https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}~1patch/put
+		if (replaceAttributes == null || replaceAttributes.isEmpty()) {
+			throw new UnknownUidException("Atributes are empty");
+		}
+
+		JSONObject jo = new JSONObject();
+
+		if (uid == null) {
+			throw new InvalidAttributeValueException("Missing mandatory attribute - uid");
+		}
+
+		HttpPut request = new HttpPut(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/patch");
+
+		handleAttributes(replaceAttributes, jo);
+
+		String response = callRequest(request, jo.toString());
+
+		Uid responseUid = parseUidFromString(response);
+		LOG.ok("UPDATE activation status for user with uid = {0}", responseUid.getUidValue());
+		handleEnable(responseUid, replaceAttributes);
+		LOG.ok("Handle enable done");
+
+		handleProfileImage(responseUid, replaceAttributes);
+		LOG.ok("Handle profile image done");
+
+		return responseUid;
+	}
+
+	private void handleAttributes(Set<Attribute>  replaceAttributes, JSONObject jo) {
+		for (Attribute attr:replaceAttributes) {
+			String attrName = attr.getName();
+			if (!attrName.equals(OperationalAttributeInfos.PASSWORD.getName()) && !attrName.equals(OperationalAttributeInfos.ENABLE.getName())
+					&& !attrName.equals(ATTR_ID) && !attrName.equals(Name.NAME) && !attrName.equals(ATTR_IMAGE)) {
+				LOG.ok("Reading attribute {0} with value {1}", attrName, attr.getValue());
+				jo.put(attrName, getStringAttr(replaceAttributes, attrName));
+			} else if (attrName.equals(Name.NAME)) {
+				jo.put(ATTR_USERNAME, getStringAttr(replaceAttributes, Name.NAME));
+			}
+		}
+
+		final List<String> passwordList = new ArrayList<>();
+		GuardedString guardedPassword = getAttr(replaceAttributes, OperationalAttributeInfos.PASSWORD.getName(), GuardedString.class);
+		String password = null;
+		if (guardedPassword != null) {
+			guardedPassword.access(new GuardedString.Accessor() {
+				@Override
+				public void access(char[] chars) {
+					passwordList.add(new String(chars));
+				}
+			});
+		}
+		if (!passwordList.isEmpty()) {
+			password = passwordList.get(0);
+		}
+		jo.put("password", password);
 	}
 
 	@Override
 	public Uid create(ObjectClass objectClass, Set<Attribute> createAttributes, OperationOptions options) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException();
+//		https://api.mattermost.com/#tag/users/paths/~1users/post
+		if (createAttributes == null || createAttributes.isEmpty()) {
+			throw new UnknownUidException("Atributes are empty");
+		}
+
+		JSONObject jo = new JSONObject();
+
+		if (StringUtil.isBlank(getStringAttr(createAttributes, Name.NAME))) {
+			throw new InvalidAttributeValueException("Missing mandatory attribute " + Name.NAME);
+		} else {
+			jo.put(ATTR_USERNAME, getStringAttr(createAttributes, Name.NAME));
+		}
+
+		if (StringUtil.isBlank(getStringAttr(createAttributes, ATTR_EMAIL))) {
+			throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_EMAIL);
+		}
+
+		HttpPost request = new HttpPost(getConfiguration().getServiceAddress() + "/users");
+
+		handleAttributes(createAttributes, jo);
+
+		String response = callRequest(request, jo.toString());
+
+		Uid responseUid = parseUidFromString(response);
+
+		handleEnable(responseUid, createAttributes);
+		LOG.ok("Handle enable done");
+
+		handleProfileImage(responseUid, createAttributes);
+		LOG.ok("Handle profile image done");
+
+		setDefaultTeam(responseUid);
+		LOG.ok("Setting team done");
+
+		setDefaultChannels(responseUid);
+		LOG.ok("Setting channels done");
+
+		return responseUid;
 	}
-    
-    
+
+	private void handleEnable(Uid uid, Set<Attribute> attributes) {
+		Boolean enable = getAttr(attributes, OperationalAttributes.ENABLE_NAME, Boolean.class);
+
+		LOG.ok("Handle enable value = {0} for uid = {1}", enable, uid.getUidValue());
+
+		if (enable != null) {
+//			https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}~1active/put
+			HttpPut enableRequest = new HttpPut(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/active");
+			JSONObject jo = new JSONObject();
+			jo.put(ATTR_ACTIVE, enable);
+			callRequest(enableRequest, jo.toString());
+		}
+	}
+
+	private void setDefaultTeam(Uid uid) {
+//		https://api.mattermost.com/#tag/teams/paths/~1teams~1{team_id}~1members/post
+		String teamId = getConfiguration().getDefaultTeamId();
+		LOG.ok("Adding uid = {0} to team = {1}", uid.getUidValue(), teamId);
+
+		HttpPost teamRequest = new HttpPost(getConfiguration().getServiceAddress() + "/teams/" + teamId + "/members");
+		JSONObject jo = new JSONObject();
+		jo.put(ATTR_TEAM_ID, teamId);
+		jo.put(ATTR_USER_ID, uid.getUidValue());
+		callRequest(teamRequest, jo.toString());
+	}
+
+	private void setDefaultChannels(Uid uid) {
+//		https://api.mattermost.com/#tag/channels/paths/~1channels~1{channel_id}~1members/post
+		String[] channelIds = getConfiguration().getDefaultChannelIds();
+
+		for (String channelId: channelIds) {
+			LOG.ok("Adding uid = {0} to channel = {1}", uid.getUidValue(), channelId);
+			HttpPost channelRequest = new HttpPost(getConfiguration().getServiceAddress() + "/channels/" + channelId + "/members");
+			JSONObject jo = new JSONObject();
+			jo.put(ATTR_USER_ID, uid.getUidValue());
+			callRequest(channelRequest, jo.toString());
+		}
+	}
+
+	private byte[] getUserProfilePicture(Uid uid) throws IOException {
+//		https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}~1image/get/
+		HttpGet request = new HttpGet(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/image");
+
+		request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+		request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+
+		if (token != null)
+			request.setHeader("Authorization", "Bearer "+token);
+
+		CloseableHttpResponse response = execute(request);
+		LOG.ok("response: \n{0}", response);
+
+		HttpEntity entity = response.getEntity();
+		InputStream is = entity.getContent();
+		byte[] downloadedPicture = new byte[is.available()];
+		is.read(downloadedPicture, 0, downloadedPicture.length);
+		is.close();
+
+		closeResponse(response);
+
+		return downloadedPicture;
+  	}
+
+	public void handleProfileImage(Uid uid, Set<Attribute> attributes)   {
+//		https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}~1image/post
+		HttpPost request = new HttpPost(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/image");
+
+		byte[] base64Image = getAttr(attributes, ATTR_IMAGE, byte[].class);
+		InputStream targetStream = new ByteArrayInputStream(base64Image);
+
+		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+		builder.addBinaryBody(
+				ATTR_IMAGE,
+				targetStream,
+				ContentType.APPLICATION_OCTET_STREAM,
+				uid.getUidValue() +"image.jpg"
+		);
+		HttpEntity multipart = builder.build();
+
+		request.setEntity(multipart);
+
+		callRequest(request);
+	}
 }
