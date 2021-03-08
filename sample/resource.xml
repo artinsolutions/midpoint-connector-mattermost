@@ -29,19 +29,23 @@
 		</filter>
     </connectorRef>
     <connectorConfiguration xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xsi:type="c:ConnectorConfigurationType">
-        <icfc:configurationProperties xmlns:gen408="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-mattermost/io.artin.idm.connector.mattermost.MattermostConnector" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="icfc:ConfigurationPropertiesType">
-            <gen408:trustAllCertificates>true</gen408:trustAllCertificates>
-            <gen408:password>
+        <icfc:configurationProperties xmlns:icfccp="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-mattermost/io.artin.idm.connector.mattermost.MattermostConnector" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="icfc:ConfigurationPropertiesType">
+            <icfccp:trustAllCertificates>true</icfccp:trustAllCertificates>
+            <icfccp:serviceAddress>$(mattermost.serviceAddress)</icfccp:serviceAddress>
+            <icfccp:username>$(mattermost.username)</icfccp:username>
+            <icfccp:password>
                 <clearValue>$(mattermost.password)</clearValue>
-            </gen408:password>
-            <gen408:serviceAddress>$(mattermost.serviceAddress)</gen408:serviceAddress>
-            <gen408:authMethod>$(mattermost.authMethod)</gen408:authMethod>
-            <gen408:username>$(mattermost.username)</gen408:username>
-            <gen408:tokenValue>$(mattermost.tokenValue)</gen408:tokenValue>
-            <gen408:tokenName>$(mattermost.tokenName)</gen408:tokenName>
-            <gen408:defaultTeamId>$(mattermost.defaultTeamId)</gen408:defaultTeamId>
-            <gen408:defaultChannelIds>$(mattermost.ARTINMainChannel)</gen408:defaultChannelIds>
-            <gen408:defaultChannelIds>$(mattermost.BratislavaChannel)</gen408:defaultChannelIds>
+            </icfccp:password>
+
+            <icfccp:authMethod>$(mattermost.authMethod)</icfccp:authMethod>
+            <icfccp:tokenName>$(mattermost.tokenName)</icfccp:tokenName>
+            <icfccp:tokenValue>
+            	<clearValue>$(mattermost.tokenValue)</clearValue>
+            </icfccp:tokenValue>
+
+            <icfccp:defaultTeamId>$(mattermost.defaultTeamId)</icfccp:defaultTeamId>
+            <icfccp:defaultChannelIds>$(mattermost.ARTINMainChannel)</icfccp:defaultChannelIds>
+            <icfccp:defaultChannelIds>$(mattermost.BratislavaChannel)</icfccp:defaultChannelIds>
         </icfc:configurationProperties>
     </connectorConfiguration>
 
@@ -152,10 +156,6 @@
 	         </reaction>
 	         <reaction>
 	            <situation>deleted</situation>
-	            <!-- TODO
-	            <action>
-                    <handlerUri>http://midpoint.evolveum.com/xml/ns/public/model/action-3#inactivateShadow</handlerUri>
-                </action> -->
 	         </reaction>
 	         <reaction>
 	            <situation>unlinked</situation>

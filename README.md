@@ -12,7 +12,7 @@ Connector for [Mattermost](https://mattermost.com/) using [REST API](https://api
 * Provisioning: YES
 * Live Synchronization: No
 * Password: YES
-* Activation: YES ?
+* Activation: YES
 * Script execution: No 
 
 Mattermost Connector contains support for USER entity.  
@@ -40,5 +40,5 @@ Licensed under the [Apache License 2.0](/LICENSE).
 
 ## Status
 
-Mattermost Connector is intended for production use. Tested with MidPoint version 4.1, Mattermost version: 5.32.0. The connector was introduced as a contribution to midPoint project by [ARTIN](https://www.artinsolutions.com) and is not officially supported by Evolveum.
+Mattermost Connector is intended for production use. Tested with MidPoint version 4.1, Mattermost version: 5.31.1. The connector was introduced as a contribution to midPoint project by [ARTIN](https://www.artinsolutions.com) and is not officially supported by Evolveum.
 If you need support, please contact idm@artinsolutions.com.
