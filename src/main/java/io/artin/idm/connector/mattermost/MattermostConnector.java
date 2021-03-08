@@ -597,7 +597,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 
 		HttpPut request = new HttpPut(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/patch");
 
-		handleAttributes(replaceAttributes, jo);
+		handleAttributes(replaceAttributes, jo, uid);
 
 		String response = callRequest(request, jo.toString());
 
@@ -612,7 +612,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 		return responseUid;
 	}
 
-	private void handleAttributes(Set<Attribute>  replaceAttributes, JSONObject jo) {
+	private void handleAttributes(Set<Attribute>  replaceAttributes, JSONObject jo, Uid uid) {
 		for (Attribute attr:replaceAttributes) {
 			String attrName = attr.getName();
 			if (!attrName.equals(OperationalAttributeInfos.PASSWORD.getName()) && !attrName.equals(OperationalAttributeInfos.ENABLE.getName())
@@ -637,8 +637,22 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 		}
 		if (!passwordList.isEmpty()) {
 			password = passwordList.get(0);
+			if (uid==null)
+				jo.put("password", password);
+			else {
+				// update password for existing user
+				HttpPut pwdRequest = new HttpPut(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/password");
+				JSONObject pwd = new JSONObject();
+				pwd.put("current_password", "");
+				pwd.put("new_password", password);
+				callRequest(pwdRequest, pwd.toString());
+				
+				// revoke current session
+				HttpPost revokeSessionsRequest = new HttpPost(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/sessions/revoke/all");
+				callRequest(revokeSessionsRequest);
+				LOG.ok("New password set");
+			}
 		}
-		jo.put("password", password);
 	}
 
 	@Override
@@ -662,7 +676,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 
 		HttpPost request = new HttpPost(getConfiguration().getServiceAddress() + "/users");
 
-		handleAttributes(createAttributes, jo);
+		handleAttributes(createAttributes, jo, null);
 
 		String response = callRequest(request, jo.toString());
 

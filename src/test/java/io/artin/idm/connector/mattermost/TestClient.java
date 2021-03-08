@@ -28,6 +28,7 @@ import org.identityconnectors.common.security.GuardedString;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.AttributeBuilder;
 import org.identityconnectors.framework.common.objects.ObjectClass;
+import org.identityconnectors.framework.common.objects.OperationalAttributeInfos;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -213,4 +214,19 @@ public class TestClient {
         Uid uid = new Uid("gsjw838x53yrtgge1k3o41t96c");
         conn.verifyEmail(uid);
     }    
+    
+    
+    @Test
+    public void update() throws IOException {
+        Set<Attribute> updateAttributes = new HashSet<Attribute>();
+
+	    Uid testUid = new Uid("9turd3bc9in4zrso1o4bam1esh");
+
+	    GuardedString gs = new GuardedString("Pass123456789!!".toCharArray());
+	    updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
+	
+	    Uid response = conn.update(userObjectClass, testUid, updateAttributes, null);
+	
+	    LOG.ok("Test update response = " + response.getUidValue());
+    }
 }
