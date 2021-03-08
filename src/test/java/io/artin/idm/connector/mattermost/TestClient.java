@@ -15,14 +15,22 @@
  */
 package io.artin.idm.connector.mattermost;
 
-import org.identityconnectors.common.logging.Log;
-import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.objects.ObjectClass;
-import org.testng.annotations.BeforeClass;
-
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
+
+import org.identityconnectors.common.logging.Log;
+import org.identityconnectors.common.security.GuardedString;
+import org.identityconnectors.framework.common.objects.Attribute;
+import org.identityconnectors.framework.common.objects.AttributeBuilder;
+import org.identityconnectors.framework.common.objects.ObjectClass;
+import org.identityconnectors.framework.common.objects.Uid;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
  * @author gpalos
@@ -88,7 +96,7 @@ public class TestClient {
 
         // searchByUId
         MattermostFilter searchByUid = new MattermostFilter();
-        searchByUid.byUid = "pmk3mhwe5fdmzq7ngy1j4pkjko";
+        searchByUid.byUid = "9eogiteh63yc9degamagcy195h";
         LOG.ok("start finding");
         conn.executeQuery(userObjectClass, searchByUid, rh, null);
         LOG.ok("end finding");
@@ -111,8 +119,9 @@ public class TestClient {
         conn.executeQuery(userObjectClass, searchByUid, rh, null);
         LOG.ok("end finding");
     }    
-
-    //@Test
+*/
+    /*
+    @Test
     public void findAll() {
         ResultsHandler rh = new ResultsHandler() {
             @Override
@@ -197,4 +206,11 @@ public class TestClient {
         Uid uid = new Uid("some_value");
 //        conn.getUserProfilePicture(uid);
     }*/
+    
+    
+    //@Test
+    public void verifyEmail() throws IOException {
+        Uid uid = new Uid("gsjw838x53yrtgge1k3o41t96c");
+        conn.verifyEmail(uid);
+    }    
 }

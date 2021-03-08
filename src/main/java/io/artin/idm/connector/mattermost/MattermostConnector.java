@@ -323,9 +323,9 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	                    handler.handle(connectorObject);
 	        		}
 	        		if (readAll) {
-	        			offset++;
                 		LOG.ok("Reading all users, current offset: {0}, pageSize: {1}", offset, pageSize);
 	        			while (users.length()==pageSize) {
+		        			offset++;
 	    	                httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/users?per_page="+pageSize+"&page="+offset);
 	    	                
 	    	    			users = new JSONArray(callRequest(httpGet));
@@ -437,14 +437,13 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 		builder.addAttribute(ATTR_IMAGE, image);
 
         ConnectorObject connectorObject = builder.build();
-        LOG.ok("convertUserToConnectorObject, user: {0}, \n\tconnectorObject: {1}",
-        		id, connectorObject);
+        LOG.ok("convertUserToConnectorObject, user: {0}, \n\tconnectorObject: {1}", id, connectorObject);
         return connectorObject;
 	}
 
 	
     protected String callRequest(HttpEntityEnclosingRequestBase request, String body) {
-		request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+		request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType()+"; charset=UTF-8");
 		request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
 		request.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
@@ -473,7 +472,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	}
 	
     protected String callRequest(HttpRequestBase request) {
-    	request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+    	request.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType()+"; charset=UTF-8");
         request.setHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
         if (token != null)
@@ -493,7 +492,7 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
     	// in body is also error result message
     	String result;
 		try {
-			result = EntityUtils.toString(response.getEntity());
+			result = EntityUtils.toString(response.getEntity(), "UTF-8");
 		} catch (IOException e) {
 			throw new ConnectorIOException("Error when reading response from Mattermost: "+e, e);
 		}
@@ -680,6 +679,9 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 
 		setDefaultChannels(responseUid);
 		LOG.ok("Setting channels done");
+		
+		verifyEmail(responseUid);
+		LOG.ok("Verify email done");
 
 		return responseUid;
 	}
@@ -697,6 +699,12 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 			callRequest(enableRequest, jo.toString());
 		}
 	}
+	
+	protected void verifyEmail(Uid uid) {
+		HttpPost enableRequest = new HttpPost(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/email/verify/member");
+		callRequest(enableRequest);
+	}
+	
 
 	private void setDefaultTeam(Uid uid) {
 //		https://api.mattermost.com/#tag/teams/paths/~1teams~1{team_id}~1members/post
@@ -747,11 +755,13 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 		return downloadedPicture;
   	}
 
-	public void handleProfileImage(Uid uid, Set<Attribute> attributes)   {
+	protected void handleProfileImage(Uid uid, Set<Attribute> attributes)   {
 //		https://api.mattermost.com/#tag/users/paths/~1users~1{user_id}~1image/post
 		HttpPost request = new HttpPost(getConfiguration().getServiceAddress() + "/users/" + uid.getUidValue() + "/image");
 
 		byte[] base64Image = getAttr(attributes, ATTR_IMAGE, byte[].class);
+		if (base64Image==null || base64Image.length==0)
+			return;
 		InputStream targetStream = new ByteArrayInputStream(base64Image);
 
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
