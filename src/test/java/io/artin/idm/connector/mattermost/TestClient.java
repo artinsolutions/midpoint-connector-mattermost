@@ -25,11 +25,7 @@ import java.util.Set;
 
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.objects.Attribute;
-import org.identityconnectors.framework.common.objects.AttributeBuilder;
-import org.identityconnectors.framework.common.objects.ObjectClass;
-import org.identityconnectors.framework.common.objects.OperationalAttributeInfos;
-import org.identityconnectors.framework.common.objects.Uid;
+import org.identityconnectors.framework.common.objects.*;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -73,12 +69,12 @@ public class TestClient {
 		conn.init(conf);
     }  
 
-/*    @Test
+    //@Test
     public void testConn() {
     	LOG.info("Starting testConn...");
         conn.test();
     }
-
+/*
     @Test
     public void testSchema() {
         Schema schema = conn.schema();
@@ -156,33 +152,33 @@ public class TestClient {
 
         Uid response = conn.create(userObjectClass, testAttributes, null);
     }
-
-//    @Test
+*/
+    //@Test
     public void update() throws IOException {
         Set<Attribute> updateAttributes = new HashSet<Attribute>();
 
-        String testName = "userName";
-        Uid testUid = new Uid("some_value");
+        String testName = "andrej.herich";
+        Uid testUid = new Uid("feuhgxp35ibk9dydk4hqpgpk7y");
         updateAttributes.add(AttributeBuilder.build(Name.NAME, testName));
         updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_ID, testUid.getUidValue()));
         updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_USERNAME, testName));
 
-        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_EMAIL, "UserName@test.email"));
-        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_CREATE_AT, "0"));
+        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_EMAIL, "bghfdsbsdfsdfb@test.email"));
+//        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_CREATE_AT, "0"));
 
-        GuardedString gs = new GuardedString("Pass123456789!".toCharArray());
-        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
-        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.ENABLE.getName(), true));
+//        GuardedString gs = new GuardedString("Pass123456789!".toCharArray());
+//        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
+//        updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.ENABLE.getName(), true));
 
-        File f = new File("C:\\Users\\...\\test.png");
-        byte[] byteTestPhoto = Files.readAllBytes(f.toPath());
-        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_IMAGE, byteTestPhoto));
+//        File f = new File("C:\\Users\\...\\test.png");
+//        byte[] byteTestPhoto = Files.readAllBytes(f.toPath());
+//        updateAttributes.add(AttributeBuilder.build(MattermostConnector.ATTR_IMAGE, byteTestPhoto));
 
         Uid response = conn.update(userObjectClass, testUid, updateAttributes, null);
 
         LOG.ok("Test update response = " + response.getUidValue());
     }
-
+/*
 //    @Test
     public void delete() {
         String stringUidToDelete = "some_value";
@@ -216,17 +212,17 @@ public class TestClient {
     }    
     
     
-    @Test
-    public void update() throws IOException {
-        Set<Attribute> updateAttributes = new HashSet<Attribute>();
-
-	    Uid testUid = new Uid("9turd3bc9in4zrso1o4bam1esh");
-
-	    GuardedString gs = new GuardedString("Pass123456789!!".toCharArray());
-	    updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
-	
-	    Uid response = conn.update(userObjectClass, testUid, updateAttributes, null);
-	
-	    LOG.ok("Test update response = " + response.getUidValue());
-    }
+    //@Test
+//    public void update() throws IOException {
+//        Set<Attribute> updateAttributes = new HashSet<Attribute>();
+//
+//	    Uid testUid = new Uid("9turd3bc9in4zrso1o4bam1esh");
+//
+//	    GuardedString gs = new GuardedString("Pass123456789!!".toCharArray());
+//	    updateAttributes.add(AttributeBuilder.build(OperationalAttributeInfos.PASSWORD.getName(), gs));
+//
+//	    Uid response = conn.update(userObjectClass, testUid, updateAttributes, null);
+//
+//	    LOG.ok("Test update response = " + response.getUidValue());
+//    }
 }

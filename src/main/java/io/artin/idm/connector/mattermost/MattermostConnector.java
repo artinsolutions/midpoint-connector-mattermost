@@ -153,12 +153,17 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	@Override
 	public void test() {
         HttpGet httpGet = new HttpGet(getConfiguration().getServiceAddress()+"/system/ping");
+        HttpGet httpStat = new HttpGet(getConfiguration().getServiceAddress()+"/users/stats");
         
         try {
         	String response = callRequest(httpGet);
 			LOG.info("Ping response is {0}", response);
+			response = callRequest(httpStat);
+			LOG.info("Stats loaded properly = {0}", response);
 		} catch (ConnectorIOException e) {
 			LOG.error("cannot ping to mattermost: " + e, e);
+			throw new ConnectorIOException(e.getMessage(), e);
+		} catch (PermissionDeniedException e) {
 			throw new ConnectorIOException(e.getMessage(), e);
 		}
 	}
@@ -176,12 +181,6 @@ public class MattermostConnector extends AbstractRestConnector<MattermostConfigu
 	private void buildUserClass(SchemaBuilder schemaBuilder) {
 		ObjectClassInfoBuilder objClassBuilder = new ObjectClassInfoBuilder();
 		objClassBuilder.setType(OBJECT_CLASS_USER);
-
-//		UID=id, NAME=username
-//		AttributeInfoBuilder attrIdBuilder = new AttributeInfoBuilder(ATTR_ID);
-//        objClassBuilder.addAttributeInfo(attrIdBuilder.build());
-//		AttributeInfoBuilder attrUsernameBuilder = new AttributeInfoBuilder(ATTR_USERNAME);
-//        objClassBuilder.addAttributeInfo(attrUsernameBuilder.build());
         
 		AttributeInfoBuilder attrFirstNameBuilder = new AttributeInfoBuilder(ATTR_FIRST_NAME);
         objClassBuilder.addAttributeInfo(attrFirstNameBuilder.build());
